@@ -10,18 +10,21 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 // time.
 const TOKEN_PATH = 'token.json';
 
-const creds = JSON.parse(fs.readFileSync('./credentials.json', 'utf-8'));
+const creds = {
+    client_secret: process.env.CLIENT_SECRET,
+    client_id: process.env.CLIENT_ID,
+    redirect_uri: process.env.REDIRECT_URI,
+    sheet_id: process.env.SHEET_ID,
+};
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
- * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, callback) {
-    const { client_secret, client_id, redirect_uris } = credentials.installed;
-    const oAuth2Client = new google.auth.OAuth2(
-        client_id, client_secret, redirect_uris[0]);
+function authorize(callback) {
+    const { client_secret, client_id, redirect_uri } = creds;
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
 
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
@@ -70,7 +73,7 @@ function getNewToken(oAuth2Client, callback) {
 function listAnswers(auth) {
     const sheets = google.sheets({ version: 'v4', auth });
     sheets.spreadsheets.values.get({
-        spreadsheetId: '1BroTfS9pCYpOfGCgLX1QwuKHw1QS9dNSWLXEA6UFgCg',
+        spreadsheetId: creds.sheet_id,
         range: 'Class Data!A2:E',
     }, (err, res) => {
         if (err) return console.log('The API returned an error: ' + err);
@@ -91,7 +94,7 @@ function listAnswers(auth) {
 function writeAnswers(answers) {
 
     // Authorize a client with credentials, then call the Google Sheets API.
-    authorize(creds, (auth) => {
+    authorize((auth) => {
 
         const sheets = google.sheets({ version: 'v4', auth });
         var values = [
@@ -126,7 +129,7 @@ function writeAnswers(answers) {
             values: values
         };
         sheets.spreadsheets.values.append({
-            spreadsheetId: creds.sheetId,
+            spreadsheetId: creds.sheet_id,
             range: 'Sheet1',
             resource: body,
             valueInputOption: 'RAW'
